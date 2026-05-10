@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+    branches:
+      - master
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target: [erlang, javascript]
+        otp-version: ["27", "28"]
+        gleam-version: ["1.15.4"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ matrix.otp-version }}
+          gleam-version: ${{ matrix.gleam-version }}
+          rebar3-version: "3"
+      - run: gleam deps download
+      - run: gleam test --target ${{ matrix.target }}
+      - run: gleam format --check src test

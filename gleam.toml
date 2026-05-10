@@ -1,0 +1,16 @@
+name = "gliff"
+version = "0.1.0"
+description = "A text diffing library for Gleam — Myers diff, unified format, and patch operations"
+licences = ["MIT"]
+target = "erlang"
+
+[repository]
+type = "github"
+user = "KIrie-0217"
+repo = "gliff"
+
+[dependencies]
+gleam_stdlib = ">= 0.44.0 and < 2.0.0"
+
+[dev_dependencies]
+gleeunit = ">= 1.0.0 and < 2.0.0"
