@@ -1,8 +1,7 @@
 name = "gliff"
-version = "0.1.0"
-description = "A text diffing library for Gleam — Myers diff, unified format, and patch operations"
+version = "1.0.0"
+description = "A text diffing library for Gleam — Myers diff, Patience diff, unified format, patch, semantic cleanup, and inline highlighting."
 licences = ["MIT"]
-target = "erlang"
 
 [repository]
 type = "github"
