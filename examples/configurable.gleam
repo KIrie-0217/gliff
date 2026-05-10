@@ -87,7 +87,8 @@ pub fn main() {
   io.println("\n=== Limited Budget (max_iterations: 2) ===")
   let hard_old = "a\nb\nc\nd\ne\nf\ng\nh"
   let hard_new = "z\ny\nx\nw\nv\nu\nt\ns"
-  let config = DiffConfig(algorithm: Myers, cleanup: NoCleanup, max_iterations: 2)
+  let config =
+    DiffConfig(algorithm: Myers, cleanup: NoCleanup, max_iterations: 2)
   let result = gliff.diff_with(hard_old, hard_new, config)
   print_result(result)
 }

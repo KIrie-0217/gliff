@@ -104,6 +104,10 @@ See [`examples/`](examples/) for runnable code with annotated output:
 - [`patience_diff.gleam`](examples/patience_diff.gleam) — Myers vs Patience comparison
 - [`inline_highlight.gleam`](examples/inline_highlight.gleam) — character-level change spans
 - [`configurable.gleam`](examples/configurable.gleam) — algorithm, cleanup, and budget config
+- [`context_lines.gleam`](examples/context_lines.gleam) — custom context line count
+- [`ansi_output.gleam`](examples/ansi_output.gleam) — colored terminal diff output
+- [`fuzzy_patch.gleam`](examples/fuzzy_patch.gleam) — tolerant patch application
+- [`merge3.gleam`](examples/merge3.gleam) — 3-way merge with conflict handling
 
 ## Development
 

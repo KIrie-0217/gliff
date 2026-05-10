@@ -46,7 +46,8 @@ pub fn main() {
 
   // Unified diff output
   io.println("\n=== Unified Diff ===")
-  let unified = gliff.to_unified(edits, old_name: "old.txt", new_name: "new.txt")
+  let unified =
+    gliff.to_unified(edits, old_name: "old.txt", new_name: "new.txt")
   io.println(unified)
 
   // Apply patch (roundtrip)
