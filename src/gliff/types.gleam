@@ -93,3 +93,25 @@ pub type DiffResult {
   /// The iteration budget was exceeded; result is a valid but approximate diff.
   Truncated(edits: List(Edit))
 }
+
+/// A conflict detected during 3-way merge where both sides modified
+/// the same region differently.
+pub type Conflict {
+  Conflict(
+    /// Lines from the base version in the conflicting region.
+    base_lines: List(String),
+    /// Lines from "ours" in the conflicting region.
+    our_lines: List(String),
+    /// Lines from "theirs" in the conflicting region.
+    their_lines: List(String),
+  )
+}
+
+/// The result of a 3-way merge operation.
+pub type MergeResult {
+  /// Merge completed without conflicts.
+  MergeOk(merged: String)
+  /// Merge has conflicts. `merged` contains conflict markers, `conflicts`
+  /// lists each conflicting region.
+  MergeConflict(merged: String, conflicts: List(Conflict))
+}

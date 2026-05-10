@@ -53,9 +53,19 @@ pub fn main() {
 
 | Function | Description |
 |---|---|
-| `to_unified(edits, old_name:, new_name:)` | Format as unified diff string |
+| `to_unified(edits, old_name:, new_name:)` | Format as unified diff (3 lines context) |
+| `to_unified_with(edits, old_name:, new_name:, context:)` | Unified diff with custom context lines |
+| `to_ansi(edits, old_name:, new_name:)` | Colored diff for terminal (red/green/cyan) |
+| `to_ansi_inline(edits)` | Colored diff with bold changed characters |
 | `from_unified(input)` | Parse unified diff into hunks |
 | `apply_patch(text, edits)` | Apply edits to produce target text |
+| `apply_patch_fuzzy(text, edits, tolerance:)` | Fuzzy patch (tolerates minor differences) |
+
+### Merge
+
+| Function | Description |
+|---|---|
+| `merge3(base, ours, theirs)` | 3-way merge with conflict detection |
 
 ### Post-Processing
 
@@ -80,6 +90,8 @@ import gliff/types.{
   type Algorithm, Myers, Patience,
   type Cleanup, NoCleanup, SemanticCleanup, SemanticLosslessCleanup,
   type DiffResult, Complete, Truncated,
+  type MergeResult, MergeOk, MergeConflict,
+  type Conflict, Conflict,
 }
 ```
 

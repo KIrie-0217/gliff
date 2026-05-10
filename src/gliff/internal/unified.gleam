@@ -13,13 +13,25 @@ pub fn to_unified(
   header <> body
 }
 
+pub fn to_unified_with(
+  edits: List(Edit),
+  old_name old_name: String,
+  new_name new_name: String,
+  context context: Int,
+) -> String {
+  let hunks = edits_to_hunks(edits, context)
+  let header = "--- " <> old_name <> "\n+++ " <> new_name <> "\n"
+  let body = string.join(list.map(hunks, format_hunk), "")
+  header <> body
+}
+
 pub fn from_unified(unified: String) -> Result(List(Hunk), String) {
   parse_unified(unified)
 }
 
 // --- Hunk construction ---
 
-fn edits_to_hunks(edits: List(Edit), context: Int) -> List(Hunk) {
+pub fn edits_to_hunks(edits: List(Edit), context: Int) -> List(Hunk) {
   let indexed = index_edits(edits, 0, 0, [])
   build_hunks(indexed, context)
 }

@@ -5,9 +5,12 @@
 
 import gleam/list
 import gleam/string
+import gliff/internal/ansi
 import gliff/internal/budget
 import gliff/internal/cleanup
+import gliff/internal/fuzzy_patch
 import gliff/internal/inline
+import gliff/internal/merge
 import gliff/internal/myers
 import gliff/internal/patch
 import gliff/internal/patience
@@ -16,8 +19,8 @@ import gliff/internal/tokenize
 import gliff/internal/unified
 import gliff/types.{
   type DiffConfig, type DiffResult, type Edit, type Hunk, type InlineEdit,
-  type RawEdit, Complete, Delete, DiffConfig, Equal, Insert, Myers, NoCleanup,
-  Patience, RawDelete, RawEqual, RawInsert, SemanticCleanup,
+  type MergeResult, type RawEdit, Complete, Delete, DiffConfig, Equal, Insert,
+  Myers, NoCleanup, Patience, RawDelete, RawEqual, RawInsert, SemanticCleanup,
   SemanticLosslessCleanup, Truncated,
 }
 
@@ -56,6 +59,39 @@ pub fn to_unified(
   unified.to_unified(edits, old_name:, new_name:)
 }
 
+/// Format edits as a unified diff with a custom number of context lines.
+///
+/// Same as `to_unified` but allows specifying how many unchanged lines
+/// surround each change. Equivalent to `diff -U<n>`.
+pub fn to_unified_with(
+  edits: List(Edit),
+  old_name old_name: String,
+  new_name new_name: String,
+  context context: Int,
+) -> String {
+  unified.to_unified_with(edits, old_name:, new_name:, context:)
+}
+
+/// Render edits as a colored diff string using ANSI escape codes.
+///
+/// Deletions appear in red, insertions in green, and hunk headers in cyan.
+/// Output follows the same structure as unified diff format.
+pub fn to_ansi(
+  edits: List(Edit),
+  old_name old_name: String,
+  new_name new_name: String,
+) -> String {
+  ansi.to_ansi(edits, old_name:, new_name:)
+}
+
+/// Render edits with ANSI colors and inline character highlighting.
+///
+/// Changed characters within modified lines are rendered in bold,
+/// making it easy to see exactly what changed at a glance.
+pub fn to_ansi_inline(edits: List(Edit)) -> String {
+  ansi.to_ansi_inline(edits)
+}
+
 /// Parse a unified diff string into a list of hunks.
 ///
 /// Accepts the standard format produced by `diff -u` or `to_unified`.
@@ -73,6 +109,20 @@ pub fn from_unified(input: String) -> Result(List(Hunk), String) {
 /// described by the Equal and Delete operations.
 pub fn apply_patch(text: String, edits: List(Edit)) -> Result(String, String) {
   patch.apply_patch(text, edits)
+}
+
+/// Apply edit operations with fuzzy matching for context/delete lines.
+///
+/// When Equal or Delete lines don't match exactly, accepts lines that
+/// are similar enough based on character-level comparison.
+/// Tolerance ranges from 0.0 (exact match, same as `apply_patch`) to
+/// 1.0 (accept any line). A value of 0.6 works well for most cases.
+pub fn apply_patch_fuzzy(
+  text: String,
+  edits: List(Edit),
+  tolerance tolerance: Float,
+) -> Result(String, String) {
+  fuzzy_patch.apply_patch_fuzzy(text, edits, tolerance:)
 }
 
 /// Compute the similarity ratio between two texts from their diff result.
@@ -137,6 +187,19 @@ pub fn cleanup_semantic_lossless(edits: List(Edit)) -> List(Edit) {
 /// edits pass through as InlineEqual.
 pub fn inline_highlight(edits: List(Edit)) -> List(InlineEdit) {
   inline.highlight(edits)
+}
+
+/// Perform a 3-way merge between two diverged versions of a base text.
+///
+/// Computes diff(base, ours) and diff(base, theirs), then combines
+/// the changes. When both sides modify the same region differently,
+/// a conflict is reported with Git-style conflict markers.
+///
+/// Returns `MergeOk` if the merge is clean, or `MergeConflict` with
+/// the merged text (including `<<<<<<<`/`=======`/`>>>>>>>` markers)
+/// and a list of conflicts.
+pub fn merge3(base: String, ours: String, theirs: String) -> MergeResult {
+  merge.merge3(base, ours, theirs)
 }
 
 /// Create a default diff configuration.

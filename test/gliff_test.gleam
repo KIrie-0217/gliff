@@ -1,10 +1,11 @@
+import gleam/string
 import gleeunit
 import gleeunit/should
 import gliff
 import gliff/types.{
-  Changed, Complete, Delete, DiffConfig, Equal, InlineDelete, InlineEqual,
-  InlineInsert, Insert, Myers, NoCleanup, Patience, SemanticCleanup, Truncated,
-  Unchanged,
+  Changed, Complete, Conflict, Delete, DiffConfig, Equal, InlineDelete,
+  InlineEqual, InlineInsert, Insert, MergeConflict, MergeOk, Myers, NoCleanup,
+  Patience, SemanticCleanup, Truncated, Unchanged,
 }
 
 pub fn main() -> Nil {
@@ -691,6 +692,188 @@ pub fn diff_chars_with_test() {
       ])
     }
     Truncated(_) -> should.fail()
+  }
+}
+
+// ============================================================
+// to_unified_with tests (configurable context)
+// ============================================================
+
+pub fn to_unified_with_context3_matches_default_test() {
+  let old = "a\nb\nc\nd\ne\nf\ng"
+  let new = "a\nb\nx\nd\ne\nf\ng"
+  let edits = gliff.diff(old, new)
+  let default = gliff.to_unified(edits, old_name: "a", new_name: "b")
+  let with3 =
+    gliff.to_unified_with(edits, old_name: "a", new_name: "b", context: 3)
+  default |> should.equal(with3)
+}
+
+pub fn to_unified_with_context0_test() {
+  let old = "a\nb\nc\nd\ne"
+  let new = "a\nb\nx\nd\ne"
+  let edits = gliff.diff(old, new)
+  let result =
+    gliff.to_unified_with(edits, old_name: "a", new_name: "b", context: 0)
+  string.contains(result, "-c\n+x\n") |> should.be_true
+  string.contains(result, "@@ -3,1 +3,1 @@") |> should.be_true
+}
+
+pub fn to_unified_with_context1_test() {
+  let old = "a\nb\nc\nd\ne"
+  let new = "a\nb\nx\nd\ne"
+  let edits = gliff.diff(old, new)
+  let result =
+    gliff.to_unified_with(edits, old_name: "a", new_name: "b", context: 1)
+  result
+  |> should.equal("--- a\n+++ b\n@@ -2,3 +2,3 @@\n b\n-c\n+x\n d\n")
+}
+
+// ============================================================
+// to_ansi tests
+// ============================================================
+
+pub fn to_ansi_contains_red_for_deletions_test() {
+  let edits = [Delete(["old"]), Insert(["new"])]
+  let result = gliff.to_ansi(edits, old_name: "a", new_name: "b")
+  string.contains(result, "\u{001b}[31m") |> should.be_true
+}
+
+pub fn to_ansi_contains_green_for_insertions_test() {
+  let edits = [Delete(["old"]), Insert(["new"])]
+  let result = gliff.to_ansi(edits, old_name: "a", new_name: "b")
+  string.contains(result, "\u{001b}[32m") |> should.be_true
+}
+
+pub fn to_ansi_contains_cyan_for_headers_test() {
+  let edits = [Equal(["a"]), Delete(["b"]), Insert(["c"]), Equal(["d"])]
+  let result = gliff.to_ansi(edits, old_name: "a", new_name: "b")
+  string.contains(result, "\u{001b}[36m") |> should.be_true
+}
+
+pub fn to_ansi_inline_contains_bold_test() {
+  let edits = [Delete(["hello"]), Insert(["hallo"])]
+  let result = gliff.to_ansi_inline(edits)
+  string.contains(result, "\u{001b}[1m") |> should.be_true
+}
+
+// ============================================================
+// apply_patch_fuzzy tests
+// ============================================================
+
+pub fn apply_patch_fuzzy_exact_match_test() {
+  let old = "a\nb\nc"
+  let new = "a\nx\nc"
+  let edits = gliff.diff(old, new)
+  gliff.apply_patch_fuzzy(old, edits, tolerance: 0.0)
+  |> should.be_ok
+  |> should.equal(new)
+}
+
+pub fn apply_patch_fuzzy_whitespace_tolerance_test() {
+  let old = "hello world\nfoo bar"
+  let new = "hello world\nnew line"
+  let edits = gliff.diff(old, new)
+  // Apply to text with trailing whitespace added
+  let modified = "hello world  \nfoo bar"
+  gliff.apply_patch_fuzzy(modified, edits, tolerance: 0.3)
+  |> should.be_ok
+}
+
+pub fn apply_patch_fuzzy_rejects_too_different_test() {
+  let old = "hello\nworld"
+  let new = "hello\ngleam"
+  let edits = gliff.diff(old, new)
+  // Apply to completely different text
+  let modified = "xxxxx\nyyyyy"
+  gliff.apply_patch_fuzzy(modified, edits, tolerance: 0.3)
+  |> should.be_error
+}
+
+pub fn apply_patch_fuzzy_high_tolerance_test() {
+  let old = "the quick brown fox"
+  let new = "the slow brown fox"
+  let edits = gliff.diff(old, new)
+  // Apply to slightly different text
+  let modified = "the quick brown dog"
+  gliff.apply_patch_fuzzy(modified, edits, tolerance: 0.8)
+  |> should.be_ok
+}
+
+// ============================================================
+// merge3 tests
+// ============================================================
+
+pub fn merge3_no_changes_test() {
+  let base = "a\nb\nc"
+  let result = gliff.merge3(base, base, base)
+  case result {
+    MergeOk(merged:) -> merged |> should.equal(base)
+    _ -> should.fail()
+  }
+}
+
+pub fn merge3_only_ours_changed_test() {
+  let base = "a\nb\nc"
+  let ours = "a\nx\nc"
+  let result = gliff.merge3(base, ours, base)
+  case result {
+    MergeOk(merged:) -> merged |> should.equal(ours)
+    _ -> should.fail()
+  }
+}
+
+pub fn merge3_only_theirs_changed_test() {
+  let base = "a\nb\nc"
+  let theirs = "a\ny\nc"
+  let result = gliff.merge3(base, base, theirs)
+  case result {
+    MergeOk(merged:) -> merged |> should.equal(theirs)
+    _ -> should.fail()
+  }
+}
+
+pub fn merge3_both_changed_different_regions_test() {
+  let base = "a\nb\nc\nd\ne"
+  let ours = "a\nx\nc\nd\ne"
+  let theirs = "a\nb\nc\nd\nz"
+  let result = gliff.merge3(base, ours, theirs)
+  case result {
+    MergeOk(merged:) -> merged |> should.equal("a\nx\nc\nd\nz")
+    _ -> should.fail()
+  }
+}
+
+pub fn merge3_both_changed_same_way_test() {
+  let base = "a\nb\nc"
+  let ours = "a\nx\nc"
+  let theirs = "a\nx\nc"
+  let result = gliff.merge3(base, ours, theirs)
+  case result {
+    MergeOk(merged:) -> merged |> should.equal("a\nx\nc")
+    _ -> should.fail()
+  }
+}
+
+pub fn merge3_conflict_test() {
+  let base = "a\nb\nc"
+  let ours = "a\nx\nc"
+  let theirs = "a\ny\nc"
+  let result = gliff.merge3(base, ours, theirs)
+  case result {
+    MergeConflict(merged:, conflicts:) -> {
+      string.contains(merged, "<<<<<<< ours") |> should.be_true
+      string.contains(merged, "=======") |> should.be_true
+      string.contains(merged, ">>>>>>> theirs") |> should.be_true
+      case conflicts {
+        [Conflict(our_lines:, their_lines:, ..)] -> {
+          our_lines |> should.equal(["x"])
+          their_lines |> should.equal(["y"])
+        }
+        _ -> should.fail()
+      }
+    }
+    _ -> should.fail()
   }
 }
 

@@ -1,6 +1,8 @@
 import gleam/int
 import gleam/list
-import gliff/types.{type Edit, Delete, Equal, Insert}
+import gleam/string
+import gliff/internal/myers
+import gliff/types.{type Edit, type RawEdit, Delete, Equal, Insert, RawEqual}
 
 pub fn ratio(edits: List(Edit)) -> Float {
   let #(matching, total) = count(edits, 0, 0)
@@ -29,5 +31,27 @@ fn lines_of(edit: Edit) -> List(String) {
     Equal(lines) -> lines
     Insert(lines) -> lines
     Delete(lines) -> lines
+  }
+}
+
+pub fn line_similarity(a: String, b: String) -> Float {
+  let a_chars = string.to_graphemes(a)
+  let b_chars = string.to_graphemes(b)
+  let total = list.length(a_chars) + list.length(b_chars)
+  case total {
+    0 -> 1.0
+    _ -> {
+      let raw_edits = myers.diff(a_chars, b_chars)
+      let matching = count_matching_raw(raw_edits, 0)
+      int.to_float(2 * matching) /. int.to_float(total)
+    }
+  }
+}
+
+fn count_matching_raw(edits: List(RawEdit), acc: Int) -> Int {
+  case edits {
+    [] -> acc
+    [RawEqual(_), ..rest] -> count_matching_raw(rest, acc + 1)
+    [_, ..rest] -> count_matching_raw(rest, acc)
   }
 }
